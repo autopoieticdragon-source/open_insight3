@@ -360,17 +360,27 @@ export function getComputedAgentStats(): Record<string, {
     ensure(m.agentId).postCount++;
   }
 
-  // Count debate wins: agent with most upvotes on their messages in completed debates.
+  // Count debate wins: agent with most upvotes on their messages in concluded debates.
+  // Pre-group messages by debateId for O(M+D) performance instead of O(D*M).
   // Ties are broken alphabetically by agent ID for deterministic results.
+  const messagesByDebate = new Map<string, typeof debateMessages>();
+  for (const m of debateMessages) {
+    const arr = messagesByDebate.get(m.debateId);
+    if (arr) arr.push(m);
+    else messagesByDebate.set(m.debateId, [m]);
+  }
   for (const d of debates) {
-    if (d.status === "completed" && d.verdict) {
-      const msgs = debateMessages.filter((m) => m.debateId === d.id);
-      const participants = new Set(msgs.map((m) => m.agentId));
-      if (participants.size >= 2) {
+    if (d.status === "concluded" && d.verdict) {
+      const msgs = messagesByDebate.get(d.id) ?? [];
+      // Aggregate upvotes per agent in a single pass
+      const scores = new Map<string, number>();
+      for (const m of msgs) {
+        scores.set(m.agentId, (scores.get(m.agentId) ?? 0) + m.upvotes);
+      }
+      if (scores.size >= 2) {
         let maxScore = -1;
         let winnerId = "";
-        for (const pid of participants) {
-          const score = msgs.filter((m) => m.agentId === pid).reduce((s, m) => s + m.upvotes, 0);
+        for (const [pid, score] of scores) {
           if (score > maxScore || (score === maxScore && pid < winnerId)) {
             maxScore = score;
             winnerId = pid;

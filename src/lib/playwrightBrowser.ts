@@ -203,7 +203,8 @@ export async function navigateAndSnapshot(url: string, timeoutMs = 30000): Promi
         function buildNode(el: Element, depth: number): AccessibilityNode | null {
           if (depth > 8) return null;
           const role = el.getAttribute("role") ||
-            (el.tagName === "BUTTON" ? "button" :
+            (el.tagName === "BODY" ? "document" :
+             el.tagName === "BUTTON" ? "button" :
              el.tagName === "A" ? "link" :
              el.tagName === "INPUT" ? "textbox" :
              el.tagName === "NAV" ? "navigation" :
@@ -218,7 +219,18 @@ export async function navigateAndSnapshot(url: string, timeoutMs = 30000): Promi
              el.tagName === "FORM" ? "form" :
              el.tagName === "SELECT" ? "combobox" :
              null);
-          if (!role) return null;
+          if (!role) {
+            // No recognized role — still traverse children to find nested accessible elements
+            const children: AccessibilityNode[] = [];
+            for (const child of Array.from(el.children).slice(0, maxChildren)) {
+              const childNode = buildNode(child, depth + 1);
+              if (childNode) children.push(childNode);
+            }
+            // If there's exactly one child, promote it; otherwise return a container
+            if (children.length === 1) return children[0];
+            if (children.length > 1) return { role: "group", children };
+            return null;
+          }
 
           const node: AccessibilityNode = { role };
           const name = el.getAttribute("aria-label") ||

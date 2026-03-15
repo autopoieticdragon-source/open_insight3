@@ -17,7 +17,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body style={{ fontFamily: "system-ui, sans-serif", margin: 0, background: "#031a11" }}>
         <div
           role="alert"

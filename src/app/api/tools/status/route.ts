@@ -39,11 +39,13 @@ export async function GET() {
     const [
       lean4Available,
       playwrightAvailable,
+      python3Available,
       mcpBinaryChecks,
       mcpAvailabilityChecks,
     ] = await Promise.all([
       checkLeanAvailable(),
       checkPlaywrightAvailable(),
+      isCommandAvailable("python3"),
       Promise.all(ALL_MCP_SERVERS.map((s) => isCommandAvailable(s.command).then((ok) => ({ id: s.id, ok })))),
       Promise.all(ALL_MCP_SERVERS.map((s) => isMcpServerAvailable(s).then((ok) => ({ id: s.id, ok })))),
     ]);
@@ -104,9 +106,9 @@ export async function GET() {
         requires: playwrightAvailable ? [] : gemini ? ["GEMINI_API_KEY"] : [],
       },
       notebook: {
-        available: true,
-        executionMode: gemini ? "gemini" : "subprocess",
-        requires: gemini ? ["GEMINI_API_KEY"] : [],
+        available: python3Available || gemini,
+        executionMode: python3Available ? "subprocess" : gemini ? "gemini" : "simulated",
+        requires: python3Available ? [] : gemini ? ["GEMINI_API_KEY"] : [],
       },
       math: {
         available: (mcp["scicomp-math-mcp"]?.available) || gemini,
