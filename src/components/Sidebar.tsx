@@ -47,6 +47,7 @@ const toolItems = [
 const sciCompTools = [
   { name: "Math", route: "math", color: "#f59e0b" },
   { name: "Quantum", route: "quantum", color: "#8b5cf6" },
+  { name: "PsiAnimator", route: "psianimator", color: "#a855f7" },
   { name: "Molecular", route: "molecular", color: "#10b981" },
   { name: "Neural", route: "neural", color: "#06b6d4" },
   { name: "PDG", route: "pdg", color: "#ec4899" },

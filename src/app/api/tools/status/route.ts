@@ -120,6 +120,11 @@ export async function GET() {
         executionMode: mcp["psianimator-mcp"]?.available ? "mcp" : mcp["scicomp-quantum-mcp"]?.executionMode ?? (gemini ? "gemini" : "unavailable"),
         requires: (mcp["psianimator-mcp"]?.available || mcp["scicomp-quantum-mcp"]?.available) ? [] : ["GEMINI_API_KEY"],
       },
+      psianimator: {
+        available: (mcp["psianimator-mcp"]?.available) || gemini,
+        executionMode: mcp["psianimator-mcp"]?.executionMode ?? (gemini ? "gemini" : "unavailable"),
+        requires: mcp["psianimator-mcp"]?.available ? [] : ["GEMINI_API_KEY"],
+      },
       molecular: {
         available: (mcp["scicomp-molecular-mcp"]?.available) || gemini,
         executionMode: mcp["scicomp-molecular-mcp"]?.executionMode ?? (gemini ? "gemini" : "unavailable"),

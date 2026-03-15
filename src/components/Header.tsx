@@ -194,6 +194,7 @@ export default function Header({ liveDebates: initialLiveDebates = 0, notificati
                   { label: "MCP Dashboard", href: "/tools/mcp", desc: "Server status & interactive testing", color: "var(--accent-teal)" },
                   { label: "Symbolic Math", href: "/tools/mcp?tool=math", desc: "SymPy integration, calculus, algebra", color: "#f59e0b" },
                   { label: "Quantum Sim", href: "/tools/mcp?tool=quantum", desc: "Schrödinger equation, wave packets", color: "#8b5cf6" },
+                  { label: "PsiAnimator", href: "/tools/mcp?tool=psianimator", desc: "QuTip quantum states, gates, entanglement", color: "#a855f7" },
                   { label: "Molecular Dynamics", href: "/tools/mcp?tool=molecular", desc: "Lennard-Jones MD, RDF, MSD", color: "#10b981" },
                   { label: "Neural Networks", href: "/tools/mcp?tool=neural", desc: "Model training & evaluation", color: "#06b6d4" },
                   { label: "Particle Data", href: "/tools/mcp?tool=pdg", desc: "PDG database — 400+ particles", color: "#ec4899" },
