@@ -106,7 +106,7 @@ export async function GET() {
         requires: playwrightAvailable ? [] : gemini ? ["GEMINI_API_KEY"] : [],
       },
       notebook: {
-        available: python3Available || gemini,
+        available: true,
         executionMode: python3Available ? "subprocess" : gemini ? "gemini" : "simulated",
         requires: python3Available ? [] : gemini ? ["GEMINI_API_KEY"] : [],
       },
