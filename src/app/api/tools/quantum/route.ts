@@ -97,8 +97,8 @@ async function runPsiAnimatorWorkflow(task: string, systemType: string): Promise
     : /squeezed/.test(taskLower) ? "squeezed"
     : "pure";
 
-  const dims = /qubit|spin|two.level/.test(taskLower) ? [2]
-    : /qutrit|three.level/.test(taskLower) ? [3]
+  const dims = /qubit|spin|two[\s.-]?level/.test(taskLower) ? [2]
+    : /qutrit|three[\s.-]?level/.test(taskLower) ? [3]
     : [2]; // default qubit
 
   // Step 1: Create quantum state
@@ -109,8 +109,12 @@ async function runPsiAnimatorWorkflow(task: string, systemType: string): Promise
     basis: "computational",
   });
   const stateText = String(stateResult.result);
+  // Handle both structured JSON and text response formats
   const stateIdMatch = stateText.match(/state_id['":\s]+([a-zA-Z0-9_-]+)/);
-  const stateId = stateIdMatch?.[1] ?? "state_0";
+  const stateId = stateIdMatch?.[1]
+    ?? (typeof stateResult.result === "object" && stateResult.result !== null && "state_id" in (stateResult.result as Record<string, unknown>)
+      ? String((stateResult.result as Record<string, unknown>).state_id)
+      : "state_0");
 
   // Step 2: Determine action based on task
   let actionResult = "";

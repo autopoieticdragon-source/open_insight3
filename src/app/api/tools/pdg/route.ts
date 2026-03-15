@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (!hasGeminiKey() && executionMode === "gemini") {
-      return NextResponse.json({ error: "Gemini API key not configured and pp-mcp-server not installed" }, { status: 503 });
+      return NextResponse.json({ error: "Gemini API key not configured and ParticlePhysics MCP server (pp-mcp-server) not installed" }, { status: 503 });
     }
 
     return NextResponse.json({
