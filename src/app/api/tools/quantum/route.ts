@@ -6,25 +6,26 @@ import {
   REQUIRED_CONFIG,
   enforceModelConfig,
 } from "@/lib/gemini";
-import { callMcpTool, QUANTUM_MCP_SERVER } from "@/lib/mcpClient";
+import { callMcpTool, QUANTUM_MCP_SERVER, PSIANIMATOR_MCP_SERVER } from "@/lib/mcpClient";
 
 export const maxDuration = 120;
 
 /**
- * Quantum Physics Simulation route — uses real scicomp-quantum-mcp binary via
- * a multi-step workflow (create wavepacket → solve Schrödinger), then falls
- * back to Gemini codeExecution when the binary is unavailable.
+ * Quantum Physics Simulation route — tries PsiAnimator-MCP first (QuTip-based,
+ * quantum states + entanglement + gates), then scicomp-quantum-mcp
+ * (Schrödinger solver), then Gemini codeExecution as final fallback.
  *
- * Real MCP tools (scicomp-quantum-mcp):
+ * PsiAnimator-MCP tools:
+ *   create_quantum_state, evolve_quantum_system, measure_observable,
+ *   animate_quantum_process, quantum_gate_sequence, calculate_entanglement
+ *
+ * scicomp-quantum-mcp tools:
  *   create_gaussian_wavepacket, create_plane_wave, create_lattice_potential,
  *   create_custom_potential, solve_schrodinger, solve_schrodinger_2d,
  *   analyze_wavefunction, get_task_status, get_simulation_result,
  *   render_video, visualize_potential, info
  *
- * Workflow:
- *   1. create_gaussian_wavepacket → wavefunction_id
- *   2. create_custom_potential → potential_id
- *   3. solve_schrodinger(initial_state, potential, time_steps) → simulation result
+ * Priority: PsiAnimator → scicomp-quantum → Gemini
  */
 export async function POST(request: NextRequest) {
   try {
@@ -36,11 +37,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "task is required" }, { status: 400 });
     }
 
-    // Try the real MCP multi-step workflow
+    // Try PsiAnimator-MCP first (QuTip-based, richer quantum physics tools)
+    try {
+      const psiResult = await runPsiAnimatorWorkflow(task, systemType);
+      return NextResponse.json({
+        tool: "psianimator-mcp",
+        systemType,
+        task: task.slice(0, 200),
+        result: psiResult,
+        executionMode: "mcp",
+      });
+    } catch {
+      // PsiAnimator not available — try scicomp-quantum-mcp
+    }
+
+    // Try scicomp-quantum-mcp multi-step workflow
     try {
       const mcpResult = await runQuantumWorkflow(task, systemType);
       return NextResponse.json({
-        tool: "psianimator-mcp / scicomp-quantum-mcp",
+        tool: "scicomp-quantum-mcp",
         systemType,
         task: task.slice(0, 200),
         result: mcpResult,
@@ -56,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     const text = await runGeminiFallback(task, systemType);
     return NextResponse.json({
-      tool: "psianimator-mcp / scicomp-quantum-mcp",
+      tool: "scicomp-quantum-mcp / psianimator-mcp",
       systemType,
       task: task.slice(0, 200),
       result: text.slice(0, 8000),
@@ -70,7 +85,75 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ── Multi-step quantum workflow ───────────────────────────────────────────────
+// ── PsiAnimator-MCP workflow (QuTip-based) ────────────────────────────────────
+
+async function runPsiAnimatorWorkflow(task: string, systemType: string): Promise<string> {
+  const taskLower = `${task} ${systemType}`.toLowerCase();
+
+  // Determine state type and parameters
+  const stateType = /thermal|temperature/.test(taskLower) ? "thermal"
+    : /coherent|harmonic/.test(taskLower) ? "coherent"
+    : /fock|photon/.test(taskLower) ? "fock"
+    : /squeezed/.test(taskLower) ? "squeezed"
+    : "pure";
+
+  const dims = /qubit|spin|two.level/.test(taskLower) ? [2]
+    : /qutrit|three.level/.test(taskLower) ? [3]
+    : [2]; // default qubit
+
+  // Step 1: Create quantum state
+  const stateResult = await callMcpTool(PSIANIMATOR_MCP_SERVER, "create_quantum_state", {
+    state_type: stateType,
+    system_dims: dims,
+    parameters: stateType === "pure" ? { state_indices: [0] } : {},
+    basis: "computational",
+  });
+  const stateText = String(stateResult.result);
+  const stateIdMatch = stateText.match(/state_id['":\s]+([a-zA-Z0-9_-]+)/);
+  const stateId = stateIdMatch?.[1] ?? "state_0";
+
+  // Step 2: Determine action based on task
+  let actionResult = "";
+
+  if (/entangle|bell|epr|concurrence|negativity/.test(taskLower)) {
+    // Calculate entanglement
+    const entResult = await callMcpTool(PSIANIMATOR_MCP_SERVER, "calculate_entanglement", {
+      state_id: stateId,
+    });
+    actionResult = `Entanglement analysis:\n${String(entResult.result).slice(0, 2000)}`;
+  } else if (/gate|circuit|hadamard|cnot|pauli/.test(taskLower)) {
+    // Apply gate sequence
+    const gateResult = await callMcpTool(PSIANIMATOR_MCP_SERVER, "quantum_gate_sequence", {
+      state_id: stateId,
+      gates: [{ gate: "hadamard", target: 0 }],
+    });
+    actionResult = `Gate sequence result:\n${String(gateResult.result).slice(0, 2000)}`;
+  } else if (/evolve|dynamics|time/.test(taskLower)) {
+    // Time evolution
+    const evolveResult = await callMcpTool(PSIANIMATOR_MCP_SERVER, "evolve_quantum_system", {
+      state_id: stateId,
+      method: "unitary",
+      time_steps: 100,
+      dt: 0.01,
+    });
+    actionResult = `Time evolution:\n${String(evolveResult.result).slice(0, 2000)}`;
+  } else {
+    // Default: measure observable
+    const measureResult = await callMcpTool(PSIANIMATOR_MCP_SERVER, "measure_observable", {
+      state_id: stateId,
+      observable: "sigmaz",
+      measurement_type: "expectation",
+    });
+    actionResult = `Measurement result:\n${String(measureResult.result).slice(0, 2000)}`;
+  }
+
+  return `Quantum computation complete (PsiAnimator-MCP / QuTip):\n` +
+    `State type: ${stateType}, dims: [${dims.join(",")}]\n` +
+    `State ID: ${stateId}\n` +
+    `${actionResult}`;
+}
+
+// ── scicomp-quantum-mcp workflow (Schrödinger solver) ─────────────────────────
 
 async function runQuantumWorkflow(task: string, systemType: string): Promise<string> {
   const taskLower = `${task} ${systemType}`.toLowerCase();

@@ -11,15 +11,17 @@ import { callMcpTool, PDG_MCP_SERVER } from "@/lib/mcpClient";
 export const maxDuration = 120;
 
 /**
- * ParticlePhysics MCP route — tries the real particlephysics-mcp binary first
+ * ParticlePhysics MCP route — tries the real pp-mcp-server binary first
  * (offline PDG database, 400+ particles), then falls back to Gemini googleSearch.
  *
  * Install: `pip install particlephysics-mcp` or
- *          `uvx --from git+https://github.com/uzerone/ParticlePhysics-MCP-Server.git particlephysics-mcp`
+ *          `uvx --from git+https://github.com/uzerone/ParticlePhysics-MCP-Server.git pp-mcp-server`
  *
- * Note: particlephysics-mcp is not currently on PyPI. When the binary is
- * available (installed manually), it runs offline with no API key needed.
+ * Binary entry point: pp-mcp-server (from ParticlePhysics-MCP-Server package)
+ * When the binary is available, it runs offline with no API key needed.
  * Without it, Gemini googleSearch provides PDG-grounded data.
+ *
+ * Available tools: search_particle, get_data, decay_analysis, error_analysis
  */
 export async function POST(request: NextRequest) {
   try {
@@ -53,13 +55,13 @@ export async function POST(request: NextRequest) {
 
     const { result, executionMode } = await callMcpTool(
       PDG_MCP_SERVER,
-      "get_particle",
+      "search_particle",
       { name: hasParticle ? particle.trim() : searchQuery },
       hasGeminiKey() ? () => runGeminiFallback(searchQuery) : undefined,
     );
 
     if (!hasGeminiKey() && executionMode === "gemini") {
-      return NextResponse.json({ error: "Gemini API key not configured and particlephysics-mcp not installed" }, { status: 503 });
+      return NextResponse.json({ error: "Gemini API key not configured and pp-mcp-server not installed" }, { status: 503 });
     }
 
     return NextResponse.json({
@@ -67,7 +69,7 @@ export async function POST(request: NextRequest) {
       query: searchQuery,
       result: String(result).slice(0, 5000),
       sources: executionMode === "mcp"
-        ? "Particle Data Group (PDG) offline database via particlephysics-mcp"
+        ? "Particle Data Group (PDG) offline database via pp-mcp-server"
         : "Particle Data Group (PDG) via Gemini Google Search",
       executionMode,
     });

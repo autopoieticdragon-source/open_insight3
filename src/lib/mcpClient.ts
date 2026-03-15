@@ -83,9 +83,29 @@ export const NEURAL_MCP_SERVER: McpServerConfig = {
 
 export const PDG_MCP_SERVER: McpServerConfig = {
   id: "particlephysics-mcp",
-  command: "particlephysics-mcp",
+  command: "pp-mcp-server",
   args: [],
-  description: "particlephysics-mcp — PDG particle database, 400+ particles, offline (ParticlePhysics MCP)",
+  description: "ParticlePhysics MCP Server — PDG particle database, 400+ particles, offline",
+};
+
+/**
+ * PsiAnimator-MCP — Quantum physics simulation & animation server.
+ * Uses QuTip for quantum computation and Manim for visualization.
+ *
+ * Tools: create_quantum_state, evolve_quantum_system, measure_observable,
+ *        animate_quantum_process, quantum_gate_sequence, calculate_entanglement
+ *
+ * Install: `pip install psianimator-mcp` (core) or
+ *          `pip install "psianimator-mcp[animation]"` (with Manim visualization)
+ *
+ * Note: Animation features require LaTeX, FFmpeg, Cairo (heavy deps).
+ *       Core installation works without them for quantum computation.
+ */
+export const PSIANIMATOR_MCP_SERVER: McpServerConfig = {
+  id: "psianimator-mcp",
+  command: "psianimator-mcp",
+  args: [],
+  description: "PsiAnimator-MCP — quantum state creation, evolution, measurement, entanglement (QuTip-based)",
 };
 
 /** All known MCP servers for status checks */
@@ -95,6 +115,7 @@ export const ALL_MCP_SERVERS: McpServerConfig[] = [
   MOLECULAR_MCP_SERVER,
   NEURAL_MCP_SERVER,
   PDG_MCP_SERVER,
+  PSIANIMATOR_MCP_SERVER,
 ];
 
 // ── Internal process state ────────────────────────────────────────────────────
