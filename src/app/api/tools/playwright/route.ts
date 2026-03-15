@@ -69,12 +69,26 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Determine app origin from trusted server-side config (NOT from user headers)
-  const appOrigin =
+  // Determine app origin from trusted server-side config.
+  // In production we require an explicit, trusted origin and NEVER fall back to request headers.
+  let appOrigin =
     process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : request.nextUrl.origin);
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+
+  if (!appOrigin) {
+    if (process.env.NODE_ENV === "production") {
+      // Fail closed in production if no trusted app origin is configured.
+      return NextResponse.json(
+        {
+          error:
+            "Server misconfiguration: app origin is not set. Please configure NEXT_PUBLIC_APP_URL or VERCEL_URL.",
+        },
+        { status: 500 },
+      );
+    }
+    // Non-production fallback: use a hardcoded, safe local origin for development.
+    appOrigin = "http://localhost:3000";
+  }
 
   if (!isAllowedTarget(url, appOrigin)) {
     return NextResponse.json(
